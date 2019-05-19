@@ -65,11 +65,8 @@ def chars_to_onehot(text: str, char_to_idx: dict) -> Tensor:
     D = len(char_to_idx)
     text = list(text)
     result = torch.zeros((N, D), dtype=torch.int8)
-
     indices = [char_to_idx[char] for char in text]
-
     result[range(N), indices] = 1
-
     return result
 
 
@@ -117,12 +114,14 @@ def chars_to_labelled_samples(text: str, char_to_idx: dict, seq_len: int,
 
     V = len(char_to_idx)
     S = seq_len
-    L = len(text)
+    L = len(text)-1
     N = int(L/S)
 
     #TODO should we do padding for last sample?
-    embedded_text = chars_to_onehot(text, char_to_idx)[:N*S]
+    embedded_text = chars_to_onehot(text, char_to_idx)[:-1]
+    embedded_text = embedded_text[:N*S]
     samples = embedded_text.reshape((N, S, V))
+    #TODO make sure reshape is good
 
     text_list = list(text)
     text_list_cut = text_list[1:N*S+1]
@@ -135,10 +134,10 @@ def chars_to_labelled_samples(text: str, char_to_idx: dict, seq_len: int,
     labels = torch.Tensor([char_to_idx[char] for char in text_list_cut]).reshape((N, S))
     #TODO avoid loop in tensor initialization
 
-    return samples, labels
+    samples = samples.to(device)
+    labels = labels.to(device)
 
-    #TODO make sure function is good
-    #TODO remove the comment from #model = model.to(device) in the cell!!
+    return samples, labels
 
 
 def hot_softmax(y, dim=0, temperature=1.0):
@@ -188,9 +187,15 @@ def generate_from_model(model, start_sequence, n_chars, char_maps, T):
     # necessary for this. Best to disable tracking for speed.
     # See torch.no_grad().
 
-    y, h = model(start_sequence)
-    char_probabilities = hot_softmax(y, temperature=T)
-    return out_text
+    S = len(start_sequence) - 1
+    with torch.no_grad():
+        samples, labels = chars_to_labelled_samples(start_sequence, char_to_idx, S, device)
+        y, h = model(samples.to(dtype=torch.float))
+        char_probabilities = hot_softmax(y, temperature=T).reshape((S, 81))
+        new_char_index = torch.multinomial(char_probabilities, 1)[-1].item()
+        new_char = idx_to_char[new_char_index]
+
+        return out_text
 
 
 class MultilayerGRU(nn.Module):
@@ -234,21 +239,22 @@ class MultilayerGRU(nn.Module):
         #     sure to initialize them. See functions in torch.nn.init.
 
         def inner_layer_params(j):
+
             # z:
             W_x_z = nn.Linear(h_dim, h_dim, bias=False)
-            self.add_module('W_x_z' + j, W_x_z)
+            self.add_module('W_x_z_' + j, W_x_z)
             W_h_z = nn.Linear(h_dim, h_dim, bias=True)
-            self.add_module('W_h_z' + j, W_h_z)
+            self.add_module('W_h_z_' + j, W_h_z)
             # r:
             W_x_r = nn.Linear(h_dim, h_dim, bias=False)
-            self.add_module('W_x_r' + j, W_x_r)
+            self.add_module('W_x_r_' + j, W_x_r)
             W_h_r = nn.Linear(h_dim, h_dim, bias=True)
-            self.add_module('W_h_r' + j, W_h_r)
+            self.add_module('W_h_r_' + j, W_h_r)
             # g:
             W_x_g = nn.Linear(h_dim, h_dim, bias=False)
-            self.add_module('W_x_g' + j, W_x_g)
+            self.add_module('W_x_g_' + j, W_x_g)
             W_h_g = nn.Linear(h_dim, h_dim, bias=True)
-            self.add_module('W_h_g' + j, W_h_g)
+            self.add_module('W_h_g_' + j, W_h_g)
             return W_x_z, W_h_z, W_x_r, W_h_r, W_x_z, W_h_z
 
         #first layer -
@@ -315,7 +321,8 @@ class MultilayerGRU(nn.Module):
         s = nn.Sigmoid()
         t = nn.Tanh()
 
-        layer_output = torch.empty((batch_size, seq_len, self.out_dim))
+        #layer_output2 = torch.empty((batch_size, seq_len, self.out_dim))
+        layer_output = []
 
         for char_index in range(seq_len):
             x = layer_input[:, char_index, :]
@@ -325,16 +332,24 @@ class MultilayerGRU(nn.Module):
                 z = s(W_x_z(x) + W_h_z(state))
                 r = s(W_x_r(x) + W_h_r(state))
                 g = t(W_x_g(x) + W_h_g(state*r))
-                x = z*state + (1-z)*g
+                x = self.dropout(z*state + (1-z)*g)
                 layer_states[layer_num] = x
 
             W_h_y = self.layer_params[-1]
             y = W_h_y(x)
-            layer_output[:, char_index, :] = y
+            #layer_output2[:, char_index, :] = y
+            layer_output.append(y)
 
-        hidden_state = torch.empty((batch_size, self.n_layers, self.h_dim))
-        for i, layer_state in enumerate(layer_states):
-            hidden_state[:, i, :] = layer_state
+
+        # hidden_state2 = torch.empty((batch_size, self.n_layers, self.h_dim))
+        # for i, layer_state in enumerate(layer_states):
+        #    hidden_state2[:, i, :] = layer_state
+
+        hidden_state = torch.stack(layer_states, dim=1).reshape((batch_size, self.n_layers, self.h_dim))
+        layer_output = torch.stack(layer_output, dim=1).reshape((batch_size, seq_len, self.out_dim))
+
+        #b1 = torch.equal(layer_output, layer_output2)
+        #b2 = torch.equal(hidden_state, hidden_state2)
 
         return layer_output, hidden_state
 
