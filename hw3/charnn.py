@@ -114,7 +114,7 @@ def chars_to_labelled_samples(text: str, char_to_idx: dict, seq_len: int,
 
     V = len(char_to_idx)
     S = seq_len
-    L = len(text)-1
+    L = len(text) - 1
     N = int(L/S)
 
     #TODO should we do padding for last sample?
@@ -187,15 +187,20 @@ def generate_from_model(model, start_sequence, n_chars, char_maps, T):
     # necessary for this. Best to disable tracking for speed.
     # See torch.no_grad().
 
-    S = len(start_sequence) - 1
+    x = start_sequence
+    h = None
     with torch.no_grad():
-        samples, labels = chars_to_labelled_samples(start_sequence, char_to_idx, S, device)
-        y, h = model(samples.to(dtype=torch.float))
-        char_probabilities = hot_softmax(y, temperature=T).reshape((S, 81))
-        new_char_index = torch.multinomial(char_probabilities, 1)[-1].item()
-        new_char = idx_to_char[new_char_index]
+        for _ in range(n_chars - len(start_sequence)):
+            samples = chars_to_onehot(x, char_to_idx).to(device)
+            samples = samples.reshape((1, samples.shape[0], samples.shape[1]))
+            y, h = model(samples.to(dtype=torch.float), h)
+            char_probabilities = hot_softmax(y, temperature=T).reshape((y.shape[1], 81))
+            new_char_index = torch.multinomial(char_probabilities, 1)[-1].item()
+            new_char = idx_to_char[new_char_index]
+            x = new_char
+            out_text += x
 
-        return out_text
+    return out_text
 
 
 class MultilayerGRU(nn.Module):
