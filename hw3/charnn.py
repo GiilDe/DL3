@@ -126,11 +126,6 @@ def chars_to_labelled_samples(text: str, char_to_idx: dict, seq_len: int,
     text_list = list(text)
     text_list_cut = text_list[1:N*S+1]
 
-    # text_minus_first = ''.join(text_list_cut)
-    # table = str.maketrans(char_to_idx)
-    # text_minus_first = text_minus_first.translate(table)
-    # text_list = list(text_minus_first)
-
     labels = torch.Tensor([char_to_idx[char] for char in text_list_cut]).reshape((N, S))
     #TODO avoid loop in tensor initialization
 
