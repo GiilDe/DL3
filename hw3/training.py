@@ -53,6 +53,7 @@ class Trainer(abc.ABC):
         :param post_epoch_fn: A function to call after each epoch completes.
         :return: A FitResult object containing train and test losses per epoch.
         """
+
         actual_num_epochs = 0
         train_loss, train_acc, test_loss, test_acc = [], [], [], []
 
@@ -84,9 +85,26 @@ class Trainer(abc.ABC):
             # - Save losses and accuracies in the lists above.
             # - Implement early stopping. This is a very useful and
             #   simple regularization technique that is highly recommended.
-            # ====== YOUR CODE: ======
-            raise NotImplementedError()
-            # ========================
+            batches = None
+            if "max_batches" in kw:
+                batches = kw.get("max_batches")
+
+            actual_num_epochs += 1
+            train_res = self.train_epoch(dl_train, verbose=verbose, max_batches=batches)
+            test_res = self.test_epoch(dl_test, verbose=verbose, max_batches=batches)
+            train_loss.append(sum(train_res.losses) / len(train_res.losses))
+            train_acc.append(train_res.accuracy)
+            test_loss.append(sum(test_res.losses) / len(test_res.losses))
+            test_acc.append(test_res.accuracy)
+            if early_stopping is not None and len(test_loss) >= 2:
+                if test_loss[-1] >= test_loss[-2]:
+                    epochs_without_improvement += 1
+                    if epochs_without_improvement == early_stopping:
+                        break  # TODO check if really exits loop
+                else:
+                    epochs_without_improvement = 0
+
+            best_acc = max(best_acc if best_acc is not None else 0, test_res.accuracy)
 
             # Save model checkpoint if requested
             if save_checkpoint and checkpoint_filename is not None:
@@ -98,7 +116,7 @@ class Trainer(abc.ABC):
                       f'at epoch {epoch+1}')
 
             if post_epoch_fn:
-                post_epoch_fn(epoch, train_result, test_result, verbose)
+                post_epoch_fn(epoch, train_res, test_res, verbose)
 
         return FitResult(actual_num_epochs,
                          train_loss, train_acc, test_loss, test_acc)
@@ -203,6 +221,8 @@ class Trainer(abc.ABC):
 class RNNTrainer(Trainer):
     def __init__(self, model, loss_fn, optimizer, device=None):
         super().__init__(model, loss_fn, optimizer, device)
+        self.cache = {}
+
 
     def train_epoch(self, dl_train: DataLoader, **kw):
         # TODO: Implement modifications to the base method, if needed.
@@ -228,14 +248,21 @@ class RNNTrainer(Trainer):
         # - Backward pass (BPTT)
         # - Update params
         # - Calculate number of correct char predictions
+        B = X.shape[0]
+        S = X.shape[1]
+        V = X.shape[2]
+        #h = None
+        #if "h" in self.cache:
+         #   h = self.cache["h"]
         self.optimizer.zero_grad()
-        chars_scores, h = self.model.forward(X).to(self.device)
-        loss = self.loss_fn.forward(chars_scores, y)
+        chars_scores, h_next = self.model.forward(X) #todo : X, h
+        #self.cache["h"] = h_next
+        scores = torch.reshape(chars_scores, (B*S, V))
+        loss = self.loss_fn.forward(scores, torch.flatten(y))
         loss.backward()
-        loss = loss.item()
         self.optimizer.step()
-        y_hat = torch.argmax(chars_scores, dim=1).to(self.device)
-        num_correct = torch.sum(y_hat == y).item()
+        y_hat = torch.argmax(chars_scores, dim=2)
+        num_correct = torch.sum(y_hat == y)
 
         # Note: scaling num_correct by seq_len because each sample has seq_len
         # different predictions.
@@ -252,9 +279,11 @@ class RNNTrainer(Trainer):
             # - Forward pass
             # - Loss calculation
             # - Calculate number of correct predictions
-            # ====== YOUR CODE: ======
-            raise NotImplementedError()
-            # ========================
+            chars_scores, h = self.model.forward(x)
+            loss = self.loss_fn.forward(chars_scores, y)
+            loss = loss.item()
+            y_hat = torch.argmax(chars_scores, dim=2)
+            num_correct = torch.sum(y_hat == y).item()
 
         return BatchResult(loss.item(), num_correct.item() / seq_len)
 

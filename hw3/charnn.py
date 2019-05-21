@@ -115,16 +115,16 @@ def chars_to_labelled_samples(text: str, char_to_idx: dict, seq_len: int,
     V = len(char_to_idx)
     S = seq_len
     L = len(text) - 1
-    N = int(L/S)
+    N = int(L / S)
 
-    #TODO should we do padding for last sample?
+    # TODO should we do padding for last sample?
     embedded_text = chars_to_onehot(text, char_to_idx)[:-1]
-    embedded_text = embedded_text[:N*S]
+    embedded_text = embedded_text[:N * S]
     samples = embedded_text.reshape((N, S, V))
-    #TODO make sure reshape is good
+    # TODO make sure reshape is good
 
     text_list = list(text)
-    text_list_cut = text_list[1:N*S+1]
+    text_list_cut = text_list[1:N * S + 1]
 
     labels = torch.Tensor([char_to_idx[char] for char in text_list_cut]).reshape((N, S))
     #TODO avoid loop in tensor initialization
@@ -192,10 +192,9 @@ def generate_from_model(model, start_sequence, n_chars, char_maps, T):
             char_probabilities = hot_softmax(y, temperature=T).reshape((y.shape[1], 81))
             new_char_index = torch.multinomial(char_probabilities, 1)[-1].item()
             new_char = idx_to_char[new_char_index]
-            x = new_char
-            out_text += x
+            x += new_char
 
-    return out_text
+    return x
 
 
 class MultilayerGRU(nn.Module):
@@ -333,7 +332,7 @@ class MultilayerGRU(nn.Module):
                 r = s(W_x_r(x) + W_h_r(state))
                 g = t(W_x_g(x) + W_h_g(state*r))
                 x = self.dropout(z*state + (1-z)*g)
-                layer_states[layer_num] = x
+                layer_states[layer_num] = z*state + (1-z)*g
 
             W_h_y = self.layer_params[-1]
             y = W_h_y(x)
