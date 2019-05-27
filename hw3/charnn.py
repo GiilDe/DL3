@@ -42,6 +42,7 @@ def remove_chars(text: str, chars_to_remove):
         - n_removed: Number of chars removed.
     """
     # TODO: Implement according to the docstring.
+
     table = str.maketrans({char: None for char in chars_to_remove})
     text_clean = text.translate(table)
     n_removed = len(text) - len(text_clean)
@@ -81,7 +82,6 @@ def onehot_to_chars(embedded_text: Tensor, idx_to_char: dict) -> str:
     embedding.
     """
 
-    # TODO: Implement the reverse-embedding.
     indices = torch.argmax(embedded_text, dim=1)
     result_l = [idx_to_char[int(index)] for index in indices]
     result = ''.join(result_l)
@@ -145,11 +145,11 @@ def hot_softmax(y, dim=0, temperature=1.0):
     :return: Softmax computed with the temperature parameter.
     """
     # TODO: Implement based on the above.
+
     result = torch.exp(y/temperature)
     denom = torch.sum(result, dim=dim)
     result *= 1/denom
     return result
-
 
 def generate_from_model(model, start_sequence, n_chars, char_maps, T):
     """
@@ -181,20 +181,36 @@ def generate_from_model(model, start_sequence, n_chars, char_maps, T):
     # Note that tracking tensor operations for gradient calculation is not
     # necessary for this. Best to disable tracking for speed.
     # See torch.no_grad().
-
-    x = start_sequence
+    '''
     h = None
+    x = start_sequence
     with torch.no_grad():
         for _ in range(n_chars - len(start_sequence)):
             samples = chars_to_onehot(x, char_to_idx).to(device)
             samples = samples.reshape((1, samples.shape[0], samples.shape[1]))
             y, h = model(samples.to(dtype=torch.float), h)
-            char_probabilities = hot_softmax(y, temperature=T).reshape((y.shape[1], 81))
-            new_char_index = torch.multinomial(char_probabilities, 1)[-1].item()
+            char_probabilities = hot_softmax(y[0,-1,:], temperature=T)
+            new_char_index = torch.multinomial(char_probabilities, 1).item()
             new_char = idx_to_char[new_char_index]
-            x += new_char
+            out_text += new_char
+            x = new_char
 
-    return x
+    return out_text
+    '''
+
+    with torch.no_grad():
+        x = torch.unsqueeze(chars_to_onehot(start_sequence, char_to_idx), 0)
+        h = None
+
+        for i in range(n_chars - len(start_sequence)):
+            x = x.to(dtype=torch.float)
+            x = x.to(device)
+            y, h = model(x, hidden_state=h)
+            proba = hot_softmax(y[0, -1, :], temperature=T)
+            x_idx = torch.multinomial(proba, 1)
+            out_text += idx_to_char[x_idx.item()]
+            x = torch.unsqueeze(chars_to_onehot(out_text[-1], char_to_idx), 0)
+    return out_text
 
 
 class MultilayerGRU(nn.Module):
@@ -218,7 +234,6 @@ class MultilayerGRU(nn.Module):
         self.h_dim = h_dim
         self.n_layers = n_layers
         self.layer_params = []
-        self.dropout = nn.Dropout(dropout)
 
 
         # TODO: Create the parameters of the model.
@@ -237,51 +252,55 @@ class MultilayerGRU(nn.Module):
         #     then call self.register_parameter() on them. Also make
         #     sure to initialize them. See functions in torch.nn.init.
 
-        def inner_layer_params(j):
+
+        def inner_layer_params(j, dropout):
 
             # z:
-            W_x_z = nn.Linear(h_dim, h_dim, bias=False)
+            W_x_z = nn.Linear(h_dim, 1, bias=True)
             self.add_module('W_x_z_' + j, W_x_z)
-            W_h_z = nn.Linear(h_dim, h_dim, bias=True)
+            W_h_z = nn.Linear(h_dim, 1, bias=False)
             self.add_module('W_h_z_' + j, W_h_z)
             # r:
-            W_x_r = nn.Linear(h_dim, h_dim, bias=False)
+            W_x_r = nn.Linear(h_dim, 1, bias=True)
             self.add_module('W_x_r_' + j, W_x_r)
-            W_h_r = nn.Linear(h_dim, h_dim, bias=True)
+            W_h_r = nn.Linear(h_dim, 1, bias=False)
             self.add_module('W_h_r_' + j, W_h_r)
             # g:
-            W_x_g = nn.Linear(h_dim, h_dim, bias=False)
+            W_x_g = nn.Linear(h_dim, h_dim, bias=True)
             self.add_module('W_x_g_' + j, W_x_g)
-            W_h_g = nn.Linear(h_dim, h_dim, bias=True)
+            W_h_g = nn.Linear(h_dim, h_dim, bias=False)
             self.add_module('W_h_g_' + j, W_h_g)
-            return W_x_z, W_h_z, W_x_r, W_h_r, W_x_z, W_h_z
+            # drop:
+            drop = nn.Dropout(p=dropout)
+            self.add_module('dropout', drop)
+            return W_x_z, W_h_z, W_x_r, W_h_r, W_x_z, W_h_z, drop
 
         #first layer -
-        W_x_z_first = nn.Linear(in_dim, h_dim, bias=False)
+        W_x_z_first = nn.Linear(in_dim, 1, bias=True)
         self.add_module('W_x_z_0', W_x_z_first)
-        W_h_z_first = nn.Linear(h_dim, h_dim, bias=True)
+        W_h_z_first = nn.Linear(h_dim, 1, bias=False)
         self.add_module('W_h_z_0', W_h_z_first)
         # r:
-        W_x_r_first  = nn.Linear(in_dim, h_dim, bias=False)
+        W_x_r_first  = nn.Linear(in_dim, 1, bias=True)
         self.add_module('W_x_r_0', W_x_r_first)
-        W_h_r_first  = nn.Linear(h_dim, h_dim, bias=True)
+        W_h_r_first  = nn.Linear(h_dim, 1, bias=False)
         self.add_module('W_h_r_0', W_h_r_first)
         # g:
-        W_x_g_first  = nn.Linear(in_dim, h_dim, bias=False)
+        W_x_g_first  = nn.Linear(in_dim, h_dim, bias=True)
         self.add_module('W_x_g_0', W_x_g_first)
-        W_h_g_first  = nn.Linear(h_dim, h_dim, bias=True)
+        W_h_g_first  = nn.Linear(h_dim, h_dim, bias=False)
         self.add_module('W_h_g_0', W_h_g_first)
+        # drop:
+        drop = nn.Dropout(p=dropout)
+        self.add_module('dropout', drop)
 
-        self.layer_params.append((W_x_z_first, W_h_z_first, W_x_r_first, W_h_r_first, W_x_g_first, W_h_g_first))
+        self.layer_params.append((W_x_z_first, W_h_z_first, W_x_r_first, W_h_r_first, W_x_g_first, W_h_g_first, drop))
 
         for i in range(1, n_layers):
-            self.layer_params.append(inner_layer_params(str(i)))
+            self.layer_params.append(inner_layer_params(str(i), dropout))
 
         # last layer -
-        W_h_y = nn.Linear(h_dim, out_dim, bias=True)
-        self.add_module('W_h_y', W_h_y)
-
-        self.layer_params.append(W_h_y)
+        self.W_h_y = nn.Linear(h_dim, out_dim, bias=True)
 
         # TODO make sure function is good
 
@@ -320,35 +339,24 @@ class MultilayerGRU(nn.Module):
         s = nn.Sigmoid()
         t = nn.Tanh()
 
-        #layer_output2 = torch.empty((batch_size, seq_len, self.out_dim))
-        layer_output = []
+        y = torch.zeros_like(layer_input)
 
         for char_index in range(seq_len):
             x = layer_input[:, char_index, :]
 
-            for layer_num, params, state in zip(range(self.n_layers), self.layer_params[:-1], layer_states):
-                W_x_z, W_h_z, W_x_r, W_h_r, W_x_g, W_h_g = params
+            for layer_num, params, state in zip(range(self.n_layers), self.layer_params, layer_states):
+                W_x_z, W_h_z, W_x_r, W_h_r, W_x_g, W_h_g, dropout = params
                 z = s(W_x_z(x) + W_h_z(state))
                 r = s(W_x_r(x) + W_h_r(state))
                 g = t(W_x_g(x) + W_h_g(state*r))
-                x = self.dropout(z*state + (1-z)*g)
+                x = dropout(z*state + (1-z)*g)
                 layer_states[layer_num] = z*state + (1-z)*g
 
-            W_h_y = self.layer_params[-1]
-            y = W_h_y(x)
-            #layer_output2[:, char_index, :] = y
-            layer_output.append(y)
+            y[:, char_index, :] = self.W_h_y(x)
 
-
-        # hidden_state2 = torch.empty((batch_size, self.n_layers, self.h_dim))
-        # for i, layer_state in enumerate(layer_states):
-        #    hidden_state2[:, i, :] = layer_state
-
-        hidden_state = torch.stack(layer_states, dim=1).reshape((batch_size, self.n_layers, self.h_dim))
-        layer_output = torch.stack(layer_output, dim=1).reshape((batch_size, seq_len, self.out_dim))
-
-        #b1 = torch.equal(layer_output, layer_output2)
-        #b2 = torch.equal(hidden_state, hidden_state2)
+        hidden_state = torch.stack(layer_states, dim=1)
+            #.reshape((batch_size, self.n_layers, self.h_dim))
+        layer_output = y
 
         return layer_output, hidden_state
 

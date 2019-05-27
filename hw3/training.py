@@ -221,19 +221,15 @@ class Trainer(abc.ABC):
 class RNNTrainer(Trainer):
     def __init__(self, model, loss_fn, optimizer, device=None):
         super().__init__(model, loss_fn, optimizer, device)
-        self.cache = {}
 
 
     def train_epoch(self, dl_train: DataLoader, **kw):
         # TODO: Implement modifications to the base method, if needed.
-
+        self.h=None
         return super().train_epoch(dl_train, **kw)
 
     def test_epoch(self, dl_test: DataLoader, **kw):
-        # TODO: Implement modifications to the base method, if needed.
-        # ====== YOUR CODE: ======
-        raise NotImplementedError()
-        # ========================
+        self.h = None
         return super().test_epoch(dl_test, **kw)
 
     def train_batch(self, batch) -> BatchResult:
@@ -251,17 +247,19 @@ class RNNTrainer(Trainer):
         B = X.shape[0]
         S = X.shape[1]
         V = X.shape[2]
-        #h = None
-        #if "h" in self.cache:
-         #   h = self.cache["h"]
         self.optimizer.zero_grad()
-        chars_scores, h_next = self.model.forward(X) #todo : X, h
-        #self.cache["h"] = h_next
-        scores = torch.reshape(chars_scores, (B*S, V))
-        loss = self.loss_fn.forward(scores, torch.flatten(y))
+        chars_scores, self.h = self.model.forward(X, hidden_state=self.h)
+        scores = chars_scores.transpose(1,2)
+
+        #scores = torch.reshape(scores, (B*S, V))
+        #loss.backward(retain_graph=True)
+
+        loss = self.loss_fn.forward(scores, y)
         loss.backward()
         self.optimizer.step()
-        y_hat = torch.argmax(chars_scores, dim=2)
+        self.h.detach_()
+
+        y_hat = torch.argmax(scores, dim=1)
         num_correct = torch.sum(y_hat == y)
 
         # Note: scaling num_correct by seq_len because each sample has seq_len
@@ -279,11 +277,12 @@ class RNNTrainer(Trainer):
             # - Forward pass
             # - Loss calculation
             # - Calculate number of correct predictions
-            chars_scores, h = self.model.forward(x)
-            loss = self.loss_fn.forward(chars_scores, y)
-            loss = loss.item()
-            y_hat = torch.argmax(chars_scores, dim=2)
-            num_correct = torch.sum(y_hat == y).item()
+            chars_scores, self.h = self.model.forward(x, self.h)
+            scores = chars_scores.transpose(1,2)
+            loss = self.loss_fn.forward(scores, y)
+
+            y_hat = torch.argmax(scores, dim=1)
+            num_correct = torch.sum(y_hat == y)
 
         return BatchResult(loss.item(), num_correct.item() / seq_len)
 
