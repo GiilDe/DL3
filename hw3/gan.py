@@ -39,11 +39,11 @@ class Discriminator(nn.Module):
         modules = []
 
 
-        H_out = (H_in +2*1 -1 // 1 ) + 1
-        W_out = (W_in +2*1 -1 // 1 ) + 1
-        C_out = 5
-
+        #H_out = (H_in +2*1 -1 // 1 ) + 1
+        #W_out = (W_in +2*1 -1 // 1 ) + 1
+        #C_out = 5
         #modules.append(nn.Linear(H_out*W_out*C_out, 1))
+
         modules.append(nn.Linear(861184, 1))
         modules.append(nn.ReLU())
         self.linear = nn.Sequential(*modules)
@@ -62,7 +62,7 @@ class Discriminator(nn.Module):
         # ====== YOUR CODE: ======
 
         y = self.conv(x)
-        y = y.flatten()
+        y = y.view(y.size(0), -1)
         y = self.linear(y)
 
         # ========================
@@ -85,7 +85,19 @@ class Generator(nn.Module):
         # section or implement something new.
         # You can assume a fixed image size.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+
+        modules = []
+        filters = [z_dim] + [64, 128, 256] + [out_channels]
+
+        for i in range(1, len(filters)):
+            in_chann = filters[i - 1]
+            out_chann = filters[i]
+            modules.append(nn.ConvTranspose2d(in_channels=in_chann, out_channels=out_chann, kernel_size=featuremap_size,
+                                              padding=1))
+            modules.append(nn.ReLU())
+            modules.append(nn.BatchNorm2d(out_chann))
+
+        self.conv = nn.Sequential(*modules)
         # ========================
 
     def sample(self, n, with_grad=False):
@@ -116,7 +128,10 @@ class Generator(nn.Module):
         # Don't forget to make sure the output instances have the same scale
         # as the original (real) images.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        z = torch.unsqueeze(z, dim=2)
+        z = torch.unsqueeze(z, dim=3)
+        x = self.conv(z)
+
         # ========================
         return x
 
