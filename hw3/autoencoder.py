@@ -17,7 +17,19 @@ class EncoderCNN(nn.Module):
         # You can use any Conv layer parameters, use pooling or only strides,
         # use any activation functions, use BN or Dropout, etc.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+
+        # (Conv -> Bnorm -> ReLU)*3 + (linear -> Bnorm -> ReLU) :
+        filters = [in_channels] + [64, 128, 256] + [out_channels]
+
+        for i in range(1, len(filters)):
+            in_chann = filters[i - 1]
+            out_chann = filters[i]
+            modules.append(nn.Conv2d(in_channels=in_chann, out_channels=out_chann, kernel_size=5, padding=1))
+            modules.append(nn.BatchNorm2d(out_chann))
+            modules.append(nn.ReLU())
+
+        # modules.append(nn.Linear(2048, out_channels))
+        # modules.append(nn.ReLU())
         # ========================
         self.cnn = nn.Sequential(*modules)
 
@@ -39,7 +51,16 @@ class DecoderCNN(nn.Module):
         # Output should be a batch of images, with same dimensions as the
         # inputs to the Encoder were.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+
+        filters = [in_channels] + [64, 128, 256] + [out_channels]
+        
+        for i in range(1, len(filters)):
+            in_chann = filters[i-1]
+            out_chann = filters[i]
+            modules.append(nn.ConvTranspose2d(in_channels=in_chann, out_channels=out_chann, kernel_size=5, padding=1))
+            modules.append(nn.ReLU())
+            modules.append(nn.BatchNorm2d(out_chann))
+
         # ========================
         self.cnn = nn.Sequential(*modules)
 
@@ -67,7 +88,10 @@ class VAE(nn.Module):
 
         # TODO: Add parameters needed for encode() and decode().
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+
+        self.m_alpha = nn.Linear(n_features, z_dim)
+        self.log_sigma_alpha = nn.Linear(n_features, z_dim)
+        self.m_beta = nn.Linear(z_dim, n_features)
         # ========================
 
     def _check_features(self, in_size):
@@ -87,7 +111,14 @@ class VAE(nn.Module):
         # log_sigma2 (mean and log variance) of the posterior p(z|x).
         # 2. Apply the reparametrization trick.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+
+        h = self.features_encoder(x)
+        h = h.view(h.size(0), -1)
+        u = torch.distributions.uniform.Uniform(0, 1).sample()
+
+        mu = self.m_alpha(h)
+        log_sigma2 = self.log_sigma_alpha(h)
+        z = mu + u*log_sigma2.exp()  # todo: devide by 2?
         # ========================
 
         return z, mu, log_sigma2
@@ -97,7 +128,12 @@ class VAE(nn.Module):
         # 1. Convert latent to features.
         # 2. Apply features decoder.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        h_rec = self.m_beta(z)
+        h_rec = h_rec.view(-1, self.features_shape[0], self.features_shape[1], self.features_shape[1])
+        #mean = h_gal
+        #sigma_I =
+
+        x_rec = self.features_decoder(h_rec)
         # ========================
 
         # Scale to [-1, 1] (same dynamic range as original images).

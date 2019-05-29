@@ -146,9 +146,12 @@ def hot_softmax(y, dim=0, temperature=1.0):
     """
     # TODO: Implement based on the above.
 
-    result = torch.exp(y/temperature)
+    result = y/temperature
+    result = result.to(dtype=torch.double)
+    result = torch.exp(result)
     denom = torch.sum(result, dim=dim)
     result *= 1/denom
+
     return result
 
 def generate_from_model(model, start_sequence, n_chars, char_maps, T):
@@ -181,7 +184,7 @@ def generate_from_model(model, start_sequence, n_chars, char_maps, T):
     # Note that tracking tensor operations for gradient calculation is not
     # necessary for this. Best to disable tracking for speed.
     # See torch.no_grad().
-    '''
+
     h = None
     x = start_sequence
     with torch.no_grad():
@@ -194,22 +197,6 @@ def generate_from_model(model, start_sequence, n_chars, char_maps, T):
             new_char = idx_to_char[new_char_index]
             out_text += new_char
             x = new_char
-
-    return out_text
-    '''
-
-    with torch.no_grad():
-        x = torch.unsqueeze(chars_to_onehot(start_sequence, char_to_idx), 0)
-        h = None
-
-        for i in range(n_chars - len(start_sequence)):
-            x = x.to(dtype=torch.float)
-            x = x.to(device)
-            y, h = model(x, hidden_state=h)
-            proba = hot_softmax(y[0, -1, :], temperature=T)
-            x_idx = torch.multinomial(proba, 1)
-            out_text += idx_to_char[x_idx.item()]
-            x = torch.unsqueeze(chars_to_onehot(out_text[-1], char_to_idx), 0)
     return out_text
 
 
@@ -273,7 +260,7 @@ class MultilayerGRU(nn.Module):
             # drop:
             drop = nn.Dropout(p=dropout)
             self.add_module('dropout', drop)
-            return W_x_z, W_h_z, W_x_r, W_h_r, W_x_z, W_h_z, drop
+            return W_x_z, W_h_z, W_x_r, W_h_r, W_x_g, W_h_g, drop
 
         #first layer -
         W_x_z_first = nn.Linear(in_dim, 1, bias=True)
