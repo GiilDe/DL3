@@ -118,7 +118,7 @@ class VAE(nn.Module):
 
         mu = self.m_alpha(h)
         log_sigma2 = self.log_sigma_alpha(h)
-        z = mu + u*log_sigma2.exp()  # todo: devide by 2?
+        z = mu + u*log_sigma2.exp()    # todo: devide by 2?
         # ========================
 
         return z, mu, log_sigma2
@@ -144,7 +144,8 @@ class VAE(nn.Module):
             # Generate n latent space samples and return their reconstructions.
             # Remember that for the model, this is like inference.
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            z = torch.randn(n, self.z_dim, device=device)
+            samples = self.decode(z).to(device)
             # ========================
         return samples
 
@@ -174,10 +175,11 @@ def vae_loss(x, xr, z_mu, z_log_sigma2, x_sigma2):
     # 2. You need to average over the batch dimension.
     # ====== YOUR CODE: ======
 
-    N = x.shape[0]
+    N, C, H, W = x.shape
     dz = z_mu.shape[1]
-    data_loss = ((x - xr).norm() ** 2 / x_sigma2) / N
-    kldiv_loss = (z_log_sigma2.exp().sum() + z_mu.norm()**2 - dz - z_log_sigma2.sum()) / N
+
+    data_loss = ((x - xr).norm() ** 2 / x_sigma2) / (N*C*H*W)
+    kldiv_loss = (z_log_sigma2.exp().sum() + z_mu.norm()**2 - dz*N - z_log_sigma2.sum()) / N
     loss = data_loss + kldiv_loss
 
     # ========================
