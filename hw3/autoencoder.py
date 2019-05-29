@@ -145,7 +145,7 @@ class VAE(nn.Module):
             # Remember that for the model, this is like inference.
             # ====== YOUR CODE: ======
             z = torch.randn(n, self.z_dim, device=device)
-            samples = self.decode(z).to(device)
+            samples = self.decode(z)
             # ========================
         return samples
 
