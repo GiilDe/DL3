@@ -130,9 +130,6 @@ class VAE(nn.Module):
         # ====== YOUR CODE: ======
         h_rec = self.m_beta(z)
         h_rec = h_rec.view(-1, self.features_shape[0], self.features_shape[1], self.features_shape[1])
-        #mean = h_gal
-        #sigma_I =
-
         x_rec = self.features_decoder(h_rec)
         # ========================
 
@@ -176,7 +173,13 @@ def vae_loss(x, xr, z_mu, z_log_sigma2, x_sigma2):
     # 1. The covariance matrix of the posterior is diagonal.
     # 2. You need to average over the batch dimension.
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+
+    N = x.shape[0]
+    dz = z_mu.shape[1]
+    data_loss = ((x - xr).norm() ** 2 / x_sigma2) / N
+    kldiv_loss = (z_log_sigma2.exp().sum() + z_mu.norm()**2 - dz - z_log_sigma2.sum()) / N
+    loss = data_loss + kldiv_loss
+
     # ========================
 
     return loss, data_loss, kldiv_loss
