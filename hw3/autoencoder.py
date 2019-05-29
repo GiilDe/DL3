@@ -114,7 +114,7 @@ class VAE(nn.Module):
 
         h = self.features_encoder(x)
         h = h.view(h.size(0), -1)
-        u = torch.distributions.uniform.Uniform(0, 1).sample()
+        u = torch.distributions.normal.Normal(0, 1).sample()
 
         mu = self.m_alpha(h)
         log_sigma2 = self.log_sigma_alpha(h)

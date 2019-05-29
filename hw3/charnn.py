@@ -342,7 +342,6 @@ class MultilayerGRU(nn.Module):
             y[:, char_index, :] = self.W_h_y(x)
 
         hidden_state = torch.stack(layer_states, dim=1)
-            #.reshape((batch_size, self.n_layers, self.h_dim))
         layer_output = y
 
         return layer_output, hidden_state
