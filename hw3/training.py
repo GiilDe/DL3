@@ -294,8 +294,8 @@ class VAETrainer(Trainer):
         # TODO: Train a VAE on one batch.
         # ====== YOUR CODE: ======
 
-        xr, mu, log_sigma2 = self.model.forward(x).to(self.device)
-        loss, data_loss, _ = self.loss_fn.forward(x, xr, mu, log_sigma2).to(self.device)
+        xr, mu, log_sigma2 = self.model.forward(x)
+        loss, data_loss, _ = self.loss_fn.forward(x, xr, mu, log_sigma2)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
@@ -312,8 +312,8 @@ class VAETrainer(Trainer):
             # TODO: Evaluate a VAE on one batch.
             # ====== YOUR CODE: ======
 
-            xr, mu, log_sigma2 = self.model.forward(x).to(self.device)
-            loss, data_loss, _ = self.loss_fn.forward(x, xr, mu, log_sigma2).to(self.device)
+            xr, mu, log_sigma2 = self.model.forward(x)
+            loss, data_loss, _ = self.loss_fn.forward(x, xr, mu, log_sigma2)
 
             # ========================
 
