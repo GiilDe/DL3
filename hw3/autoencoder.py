@@ -24,7 +24,7 @@ class EncoderCNN(nn.Module):
         for i in range(1, len(filters)):
             in_chann = filters[i - 1]
             out_chann = filters[i]
-            modules.append(nn.Conv2d(in_channels=in_chann, out_channels=out_chann, kernel_size=5, padding=1))
+            modules.append(nn.Conv2d(in_channels=in_chann, out_channels=out_chann, kernel_size=4, padding=1, stride=2))
             modules.append(nn.BatchNorm2d(out_chann))
             modules.append(nn.ReLU())
 
@@ -57,7 +57,7 @@ class DecoderCNN(nn.Module):
         for i in range(1, len(filters)):
             in_chann = filters[i-1]
             out_chann = filters[i]
-            modules.append(nn.ConvTranspose2d(in_channels=in_chann, out_channels=out_chann, kernel_size=5, padding=1))
+            modules.append(nn.ConvTranspose2d(in_channels=in_chann, out_channels=out_chann, kernel_size=4, padding=1, stride=2))
             modules.append(nn.ReLU())
             modules.append(nn.BatchNorm2d(out_chann))
 
@@ -112,7 +112,7 @@ class VAE(nn.Module):
         # 2. Apply the reparametrization trick.
         # ====== YOUR CODE: ======
 
-        h = self.features_encoder(x)
+        h = self.features_encoder.forward(x)
         h = h.view(h.size(0), -1)
         u = torch.distributions.normal.Normal(0, 1).sample()
 
@@ -147,7 +147,7 @@ class VAE(nn.Module):
             z = torch.randn(n, self.z_dim, device=device)
             samples = self.decode(z)
             # ========================
-        return samples
+        return samples.to('cpu')
 
     def forward(self, x):
         z, mu, log_sigma2 = self.encode(x)

@@ -11,11 +11,10 @@ math (delimited with $$).
 
 def part1_generation_params():
     start_seq = ""
-    temperature = .0001
+    temperature = .0001 #makes it become infinity, not good
     # TODO: Tweak the parameters to generate a literary masterpiece.
-    # ====== YOUR CODE: ======
-    raise NotImplementedError()
-    # ========================
+    start_seq = "ACT I. SEEVANT. And so not me the sing a crown thy and for the sense for my means to store the take"
+    temperature = .5
     return start_seq, temperature
 
 

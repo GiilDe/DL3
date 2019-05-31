@@ -74,7 +74,7 @@ class Trainer(abc.ABC):
                 self.model.load_state_dict(saved_state['model_state'])
 
         for epoch in range(num_epochs):
-            save_checkpoint = False
+            save_checkpoint = True
             verbose = False  # pass this to train/test_epoch.
             if epoch % print_every == 0 or epoch == num_epochs - 1:
                 verbose = True
@@ -295,7 +295,7 @@ class VAETrainer(Trainer):
         # ====== YOUR CODE: ======
 
         xr, mu, log_sigma2 = self.model.forward(x)
-        loss, data_loss, _ = self.loss_fn.forward(x, xr, mu, log_sigma2)
+        loss, data_loss, _ = self.loss_fn(x, xr, mu, log_sigma2)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
@@ -313,7 +313,7 @@ class VAETrainer(Trainer):
             # ====== YOUR CODE: ======
 
             xr, mu, log_sigma2 = self.model.forward(x)
-            loss, data_loss, _ = self.loss_fn.forward(x, xr, mu, log_sigma2)
+            loss, data_loss, _ = self.loss_fn(x, xr, mu, log_sigma2)
 
             # ========================
 
