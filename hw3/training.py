@@ -250,10 +250,6 @@ class RNNTrainer(Trainer):
         self.optimizer.zero_grad()
         chars_scores, self.h = self.model.forward(X, hidden_state=self.h)
         scores = chars_scores.transpose(1,2)
-
-        #scores = torch.reshape(scores, (B*S, V))
-        #loss.backward(retain_graph=True)
-
         loss = self.loss_fn.forward(scores, y)
         loss.backward()
         self.optimizer.step()
