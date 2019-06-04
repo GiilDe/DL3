@@ -128,7 +128,7 @@ class Generator(nn.Module):
         # ====== YOUR CODE: ======
         with torch.set_grad_enabled(with_grad):
             gauss = torch.distributions.normal.Normal(0,1)
-            latent_space_samples = gauss.sample(sample_shape = (n, self.z_dim))
+            latent_space_samples = gauss.sample(sample_shape = (n, self.z_dim)).to(device)
             samples = self.forward(latent_space_samples).to(device)
         # ========================
         return samples
