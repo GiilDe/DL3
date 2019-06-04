@@ -85,30 +85,11 @@ class Generator(nn.Module):
         # section or implement something new.
         # You can assume a fixed image size.
         # ====== YOUR CODE: ======
-        '''
-        K = [250, 500, 750, 1000]
-        modules = []
-        for in_c, out_c in zip([self.z_dim] + K, K + [out_channels]):
-            modules += [
-                nn.ConvTranspose2d(in_c, out_c, featuremap_size, padding=1 if in_c != self.z_dim else 0, stride=2),
-                nn.ReLU(),
-                nn.BatchNorm2d(out_c)]
-        self.conv = nn.Sequential(*modules)
-        '''
-        modules = []
 
-        modules.append(nn.Linear(z_dim, 512*16))
-        filters = [512] + [64, 128, 256] + [out_channels]
 
-        for i in range(1, len(filters)):
-            in_chann = filters[i - 1]
-            out_chann = filters[i]
-            modules.append(nn.ConvTranspose2d(in_channels=in_chann, out_channels=out_chann, kernel_size=5,
-                                            padding = 2, stride=2))
-            modules.append(nn.ReLU())
-            modules.append(nn.BatchNorm2d(out_chann))
-
-        self.conv = nn.Sequential(*modules)
+        self.linear = nn.Linear(z_dim, 512*4)
+        self.dec = DecoderCNN(512, out_channels)
+        self.last_conv = nn.ConvTranspose2d(out_channels, out_channels, kernel_size=2, stride=2)
 
         # ========================
 
@@ -143,10 +124,11 @@ class Generator(nn.Module):
         # Don't forget to make sure the output instances have the same scale
         # as the original (real) images.
         # ====== YOUR CODE: ======
-        z = torch.unsqueeze(z, dim=2)
-        z = torch.unsqueeze(z, dim=3)
-        x = self.conv(z)
-
+        N = z.shape[0]
+        z = self.linear(z)
+        z = z.reshape(N, 512, 2, 2)
+        z = self.dec(z)
+        x = self.last_conv(z)
         # ========================
         return x
 
