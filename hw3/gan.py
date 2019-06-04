@@ -153,10 +153,10 @@ def discriminator_loss_fn(y_data, y_generated, data_label=0, label_noise=0.0):
     device = y_data.device
     noise = torch.distributions.uniform.Uniform(-label_noise/2, label_noise/2)
     data_noise = noise.sample(y_data.size()).to(device)
-    y_data_noisy = (torch.full(y_data.size(), data_label) + data_noise).to(device)
+    y_data_noisy = (torch.full(y_data.size(), data_label, device=device) + data_noise).to(device)
     gen_label = 1 - data_label
     gen_noise = noise.sample(y_data.size()).to(device)
-    y_gen_noisy = (torch.full(y_data.size(), gen_label) + gen_noise).to(device)
+    y_gen_noisy = (torch.full(y_data.size(), gen_label, device=device) + gen_noise).to(device)
     loss_data = torch.nn.functional.binary_cross_entropy_with_logits(y_data, y_data_noisy)
     loss_generated = torch.nn.functional.binary_cross_entropy_with_logits(y_generated, y_gen_noisy)
     return loss_data + loss_generated
