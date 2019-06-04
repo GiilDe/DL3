@@ -31,7 +31,7 @@ class Discriminator(nn.Module):
         for i in range(1, len(filters)):
             in_chann = filters[i - 1]
             out_chann = filters[i]
-            modules.append(nn.Conv2d(in_channels=in_chann, out_channels=out_chann, kernel_size=5, padding=1, stride=1))
+            modules.append(nn.Conv2d(in_channels=in_chann, out_channels=out_chann, kernel_size=4, padding=1, stride=2))
             modules.append(nn.BatchNorm2d(out_chann))
             modules.append(nn.ReLU())
         self.conv = nn.Sequential(*modules)
@@ -93,7 +93,7 @@ class Generator(nn.Module):
             in_chann = filters[i - 1]
             out_chann = filters[i]
             modules.append(nn.ConvTranspose2d(in_channels=in_chann, out_channels=out_chann, kernel_size=featuremap_size,
-                                              padding=1))
+                                              padding=1, stride=2))
             modules.append(nn.ReLU())
             modules.append(nn.BatchNorm2d(out_chann))
 

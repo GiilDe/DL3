@@ -74,7 +74,7 @@ class Trainer(abc.ABC):
                 self.model.load_state_dict(saved_state['model_state'])
 
         for epoch in range(num_epochs):
-            save_checkpoint = False
+            save_checkpoint = True
             verbose = False  # pass this to train/test_epoch.
             if epoch % print_every == 0 or epoch == num_epochs - 1:
                 verbose = True
@@ -250,10 +250,6 @@ class RNNTrainer(Trainer):
         self.optimizer.zero_grad()
         chars_scores, self.h = self.model.forward(X, hidden_state=self.h)
         scores = chars_scores.transpose(1,2)
-
-        #scores = torch.reshape(scores, (B*S, V))
-        #loss.backward(retain_graph=True)
-
         loss = self.loss_fn.forward(scores, y)
         loss.backward()
         self.optimizer.step()
