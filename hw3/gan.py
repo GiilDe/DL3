@@ -31,18 +31,17 @@ class Discriminator(nn.Module):
         for i in range(1, len(filters)):
             in_chann = filters[i - 1]
             out_chann = filters[i]
-            modules.append(nn.Conv2d(in_channels=in_chann, out_channels=out_chann, kernel_size=4, padding=1, stride=2))
+            modules.append(nn.Conv2d(in_channels=in_chann, out_channels=out_chann, kernel_size=5, padding=1, stride=1))
             modules.append(nn.BatchNorm2d(out_chann))
             modules.append(nn.ReLU())
         self.conv = nn.Sequential(*modules)
 
         modules = []
 
-
         #H_out = (H_in +2*1 -1 // 1 ) + 1
         #W_out = (W_in +2*1 -1 // 1 ) + 1
-        #C_out = 5
-        #modules.append(nn.Linear(H_out*W_out*C_out, 1))
+        #C_out = 256
+
 
         modules.append(nn.Linear(861184, 1))
         modules.append(nn.ReLU())
@@ -86,6 +85,16 @@ class Generator(nn.Module):
         # You can assume a fixed image size.
         # ====== YOUR CODE: ======
 
+        K = [250, 500, 750, 1000]
+        modules = []
+        for in_c, out_c in zip([self.z_dim] + K, K + [out_channels]):
+            modules += [
+                nn.ConvTranspose2d(in_c, out_c, featuremap_size, padding=1 if in_c != self.z_dim else 0, stride=2),
+                nn.ReLU(),
+                nn.BatchNorm2d(out_c)]
+        self.generator = nn.Sequential(*modules)
+
+        '''
         modules = []
         filters = [z_dim] + [64, 128, 256] + [out_channels]
 
@@ -93,11 +102,12 @@ class Generator(nn.Module):
             in_chann = filters[i - 1]
             out_chann = filters[i]
             modules.append(nn.ConvTranspose2d(in_channels=in_chann, out_channels=out_chann, kernel_size=featuremap_size,
-                                              padding=1, stride=2))
+                                              padding=1 if in_chann != self.z_dim else 0, stride=2))
             modules.append(nn.ReLU())
             modules.append(nn.BatchNorm2d(out_chann))
 
         self.conv = nn.Sequential(*modules)
+        '''
         # ========================
 
     def sample(self, n, with_grad=False):
@@ -130,7 +140,7 @@ class Generator(nn.Module):
         # ====== YOUR CODE: ======
         z = torch.unsqueeze(z, dim=2)
         z = torch.unsqueeze(z, dim=3)
-        x = self.conv(z)
+        x = self.generator(z)
 
         # ========================
         return x
