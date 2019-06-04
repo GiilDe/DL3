@@ -43,8 +43,8 @@ class Discriminator(nn.Module):
         #C_out = 256
 
 
-        #modules.append(nn.Linear(861184, 1))
-        modules.append(nn.Linear(16384, 1))
+        modules.append(nn.Linear(861184, 1))
+        #modules.append(nn.Linear(16384, 1))
         modules.append(nn.ReLU())
         self.linear = nn.Sequential(*modules)
 
