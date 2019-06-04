@@ -125,7 +125,10 @@ class Generator(nn.Module):
         # Generate n latent space samples and return their reconstructions.
         # Don't use a loop.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        with torch.set_grad_enabled(with_grad):
+            gauss = torch.distributions.normal.Normal(0,1)
+            latent_space_samples = gauss.sample(sample_shape = (n, self.z_dim))
+            samples = self.forward(latent_space_samples)
         # ========================
         return samples
 
@@ -210,8 +213,17 @@ def train_batch(dsc_model: Discriminator, gen_model: Generator,
     # 1. Show the discriminator real and generated data
     # 2. Calculate discriminator loss
     # 3. Update discriminator parameters
+
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+
+    N = x_data.shape[0]  # batch size
+    generated_samples = gen_model.sample(N, with_grad=True)
+    y_data = dsc_model.forward(x_data)
+    y_generated = dsc_model.forward(generated_samples.detach())
+    dsc_optimizer.zero_grad()
+    dsc_loss = dsc_loss_fn(y_data, y_generated)
+    dsc_loss.backward()
+    dsc_optimizer.step()
     # ========================
 
     # TODO: Generator update
@@ -219,7 +231,13 @@ def train_batch(dsc_model: Discriminator, gen_model: Generator,
     # 2. Calculate generator loss
     # 3. Update generator parameters
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+
+    y_generated = dsc_model.forward(generated_samples)
+    gen_optimizer.zero_grad()
+    gen_loss = gen_loss_fn(y_generated)
+    gen_loss.backward()
+    gen_optimizer.step()
+
     # ========================
 
     return dsc_loss.item(), gen_loss.item()
