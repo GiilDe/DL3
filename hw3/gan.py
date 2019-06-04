@@ -43,7 +43,8 @@ class Discriminator(nn.Module):
         #C_out = 256
 
 
-        modules.append(nn.Linear(861184, 1))
+        #modules.append(nn.Linear(861184, 1))
+        modules.append(nn.Linear(16384, 1))
         modules.append(nn.ReLU())
         self.linear = nn.Sequential(*modules)
 
@@ -164,11 +165,19 @@ def discriminator_loss_fn(y_data, y_generated, data_label=0, label_noise=0.0):
     assert data_label == 1 or data_label == 0
     # TODO: Implement the discriminator loss.
     # See torch's BCEWithLogitsLoss for a numerically stable implementation.
-    # ====== YOUR CODE: ======
-    raise NotImplementedError()
-    # ========================
+    noise = torch.distributions.uniform.Uniform(-label_noise/2, label_noise/2)
+    data_noise = noise.sample(y_data.size())
+    y_data_noisy = torch.full(y_data.size(), data_label) + data_noise
+    gen_label = 1 - data_label
+    gen_noise = noise.sample(y_data.size())
+    y_gen_noisy = torch.full(y_data.size(), gen_label) + gen_noise
+    loss_data = torch.nn.functional.binary_cross_entropy_with_logits(y_data, y_data_noisy)
+    loss_generated = torch.nn.functional.binary_cross_entropy_with_logits(y_generated, y_gen_noisy)
     return loss_data + loss_generated
 
+# loss_fn = torch.nn.BCEWithLogitsLoss()
+# loss_data = loss_fn(y_data_noisy, y_data)s
+# loss_generated = loss_fn(y_gen_noisy, y_generated)
 
 def generator_loss_fn(y_generated, data_label=0):
     """
@@ -183,9 +192,7 @@ def generator_loss_fn(y_generated, data_label=0):
     # TODO: Implement the Generator loss.
     # Think about what you need to compare the input to, in order to
     # formulate the loss in terms of Binary Cross Entropy.
-    # ====== YOUR CODE: ======
-    raise NotImplementedError()
-    # ========================
+    loss = torch.nn.functional.binary_cross_entropy_with_logits(y_generated, torch.full(y_generated.size(), data_label))
     return loss
 
 
