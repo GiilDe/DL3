@@ -295,7 +295,7 @@ class VAETrainer(Trainer):
         # ====== YOUR CODE: ======
 
         xr, mu, log_sigma2 = self.model.forward(x)
-        loss, data_loss, _ = self.loss_fn.forward(x, xr, mu, log_sigma2)
+        loss, data_loss, _ = self.loss_fn(x, xr, mu, log_sigma2)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
@@ -313,7 +313,7 @@ class VAETrainer(Trainer):
             # ====== YOUR CODE: ======
 
             xr, mu, log_sigma2 = self.model.forward(x)
-            loss, data_loss, _ = self.loss_fn.forward(x, xr, mu, log_sigma2)
+            loss, data_loss, _ = self.loss_fn(x, xr, mu, log_sigma2)
 
             # ========================
 
