@@ -98,9 +98,6 @@ class Generator(nn.Module):
         '''
         modules = []
 
-        n_features = 3211264
-        modules.append(nn.Linear(z_dim, n_features))
-
         filters = [z_dim] + [64, 128, 256] + [out_channels]
 
         for i in range(1, len(filters)):
@@ -112,7 +109,7 @@ class Generator(nn.Module):
             modules.append(nn.BatchNorm2d(out_chann))
 
         self.conv = nn.Sequential(*modules)
-       '''
+        '''
         # ========================
 
     def sample(self, n, with_grad=False):
@@ -132,7 +129,7 @@ class Generator(nn.Module):
         with torch.set_grad_enabled(with_grad):
             gauss = torch.distributions.normal.Normal(0,1)
             latent_space_samples = gauss.sample(sample_shape = (n, self.z_dim))
-            samples = self.forward(latent_space_samples)
+            samples = self.forward(latent_space_samples).to(device)
         # ========================
         return samples
 
@@ -222,8 +219,8 @@ def train_batch(dsc_model: Discriminator, gen_model: Generator,
 
     N = x_data.shape[0]  # batch size
     generated_samples = gen_model.sample(N, with_grad=True)
-    y_data = dsc_model.forward(x_data)
-    y_generated = dsc_model.forward(generated_samples.detach())
+    y_data = dsc_model(x_data)
+    y_generated = dsc_model(generated_samples.detach())
     dsc_optimizer.zero_grad()
     dsc_loss = dsc_loss_fn(y_data, y_generated)
     dsc_loss.backward()
@@ -236,7 +233,7 @@ def train_batch(dsc_model: Discriminator, gen_model: Generator,
     # 3. Update generator parameters
     # ====== YOUR CODE: ======
 
-    y_generated = dsc_model.forward(generated_samples)
+    y_generated = dsc_model(generated_samples)
     gen_optimizer.zero_grad()
     gen_loss = gen_loss_fn(y_generated)
     gen_loss.backward()
