@@ -85,10 +85,10 @@ class VAE(nn.Module):
         self.z_dim = z_dim
 
         self.features_shape, n_features = self._check_features(in_size)
+        #print(n_features,self.features_shape)
 
         # TODO: Add parameters needed for encode() and decode().
         # ====== YOUR CODE: ======
-
         self.m_alpha = nn.Linear(n_features, z_dim)
         self.log_sigma_alpha = nn.Linear(n_features, z_dim)
         self.m_beta = nn.Linear(z_dim, n_features)
