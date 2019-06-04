@@ -85,7 +85,7 @@ class Generator(nn.Module):
         # section or implement something new.
         # You can assume a fixed image size.
         # ====== YOUR CODE: ======
-        '''
+
         K = [250, 500, 750, 1000]
         modules = []
         for in_c, out_c in zip([self.z_dim] + K, K + [out_channels]):
@@ -93,10 +93,9 @@ class Generator(nn.Module):
                 nn.ConvTranspose2d(in_c, out_c, featuremap_size, padding=1 if in_c != self.z_dim else 0, stride=2),
                 nn.ReLU(),
                 nn.BatchNorm2d(out_c)]
-        self.generator = nn.Sequential(*modules)
+        self.conv = nn.Sequential(*modules)
 
         '''
-
         modules = []
 
         n_features = 3211264
@@ -113,7 +112,7 @@ class Generator(nn.Module):
             modules.append(nn.BatchNorm2d(out_chann))
 
         self.conv = nn.Sequential(*modules)
-
+       '''
         # ========================
 
     def sample(self, n, with_grad=False):
