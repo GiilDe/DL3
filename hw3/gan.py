@@ -86,7 +86,6 @@ class Generator(nn.Module):
         # You can assume a fixed image size.
         # ====== YOUR CODE: ======
 
-
         self.linear = nn.Linear(z_dim, 512*4)
         self.dec = DecoderCNN(512, out_channels)
         self.last_conv = nn.ConvTranspose2d(out_channels, out_channels, kernel_size=2, stride=2)
