@@ -85,7 +85,7 @@ class Generator(nn.Module):
         # section or implement something new.
         # You can assume a fixed image size.
         # ====== YOUR CODE: ======
-
+        '''
         K = [250, 500, 750, 1000]
         modules = []
         for in_c, out_c in zip([self.z_dim] + K, K + [out_channels]):
@@ -94,22 +94,22 @@ class Generator(nn.Module):
                 nn.ReLU(),
                 nn.BatchNorm2d(out_c)]
         self.conv = nn.Sequential(*modules)
-
         '''
         modules = []
 
-        filters = [z_dim] + [64, 128, 256] + [out_channels]
+        modules.append(nn.Linear(z_dim, 512*16))
+        filters = [512] + [64, 128, 256] + [out_channels]
 
         for i in range(1, len(filters)):
             in_chann = filters[i - 1]
             out_chann = filters[i]
-            modules.append(nn.ConvTranspose2d(in_channels=in_chann, out_channels=out_chann, kernel_size=featuremap_size,
-                                              padding=1 if in_chann != self.z_dim else 0, stride=1))
+            modules.append(nn.ConvTranspose2d(in_channels=in_chann, out_channels=out_chann, kernel_size=5,
+                                            padding = 2, stride=2))
             modules.append(nn.ReLU())
             modules.append(nn.BatchNorm2d(out_chann))
 
         self.conv = nn.Sequential(*modules)
-        '''
+
         # ========================
 
     def sample(self, n, with_grad=False):
