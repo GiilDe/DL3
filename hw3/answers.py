@@ -133,7 +133,7 @@ def part3_gan_hyperparams():
     # TODO: Tweak the hyperparameters to train your GAN.
     # ====== YOUR CODE: ======
     hypers['batch_size'] = 128
-    hypers['z_dim'] = 100
+    hypers['z_dim'] = 3
     hypers['data_label'] = 0
     hypers['label_noise'] = 0.5
     hypers['discriminator_optimizer']['type'] = "Adam"
