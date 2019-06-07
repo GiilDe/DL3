@@ -143,18 +143,17 @@ class Generator(nn.Module):
         # Generate n latent space samples and return their reconstructions.
         # Don't use a loop.
         # ====== YOUR CODE: ======
+        '''
         torch.autograd.set_grad_enabled(with_grad)
         z = torch.randn([n, self.z_dim], device=device, requires_grad=with_grad)
         samples = self.forward(z)
         torch.autograd.set_grad_enabled(True)
 
         '''
-                with torch.set_grad_enabled(with_grad):
+        with torch.set_grad_enabled(with_grad):
             gauss = torch.distributions.normal.Normal(0,1)
             latent_space_samples = gauss.sample(sample_shape = (n, self.z_dim)).to(device)
             samples = self.forward(latent_space_samples).to(device)
-        '''
-
         # ========================
         return samples
 
