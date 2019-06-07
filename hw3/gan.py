@@ -23,7 +23,7 @@ class Discriminator(nn.Module):
         # flatten the features.
         # ====== YOUR CODE: ======
         '''
-                C_in, H_in, W_in  = in_size
+        C_in, H_in, W_in  = in_size
 
         filters = [C_in] + [64, 128, 256]
         modules = []
