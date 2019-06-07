@@ -21,33 +21,30 @@ class Discriminator(nn.Module):
         # section or implement something new.
         # You can then use either an affine layer or another conv layer to
         # flatten the features.
-        # ====== YOUR CODE: ======
-        '''
+
         C_in, H_in, W_in  = in_size
 
-        filters = [C_in] + [64, 128, 256]
+        filters = [C_in] + [250, 500, 750, 1000]
         modules = []
 
         for i in range(1, len(filters)):
             in_chann = filters[i - 1]
             out_chann = filters[i]
-            modules.append(nn.Conv2d(in_channels=in_chann, out_channels=out_chann, kernel_size=5, padding=1, stride=1))
+            modules.append(nn.Conv2d(in_channels=in_chann, out_channels=out_chann, kernel_size=4, padding=1, stride=2))
             modules.append(nn.BatchNorm2d(out_chann))
             modules.append(nn.ReLU())
         self.conv = nn.Sequential(*modules)
 
         modules = []
 
-        #H_out = (H_in +2*1 -1 // 1 ) + 1
-        #W_out = (W_in +2*1 -1 // 1 ) + 1
-        #C_out = 256
+        H_out = H_in // (2**(len(filters)-1))
+        W_out = W_in // (2**(len(filters)-1))
+        C_out = 1000
 
-
-        modules.append(nn.Linear(861184, 1))
-        modules.append(nn.ReLU())
+        modules.append(nn.Linear(H_out*W_out*C_out, 1))
         self.linear = nn.Sequential(*modules)
-        '''
 
+        '''
         count_pool = 0
         K = [250, 500, 750, 1000]
         modules = []
@@ -71,6 +68,8 @@ class Discriminator(nn.Module):
                               nn.Dropout(0.2),
                               nn.Linear(h_ds * w_ds // 4, 1)]
         self.classifier = nn.Sequential(*classifier_modules)
+                # ====== YOUR CODE: ======
+        '''
         # ========================
 
     def forward(self, x):
@@ -84,9 +83,9 @@ class Discriminator(nn.Module):
         # with the loss due to improved numerical stability.
         # ====== YOUR CODE: ======
 
-        y = self.cnn(x)
+        y = self.conv(x)
         y = y.view(y.size(0), -1)
-        y = self.classifier(y)
+        y = self.linear(y)
 
         # ========================
         return y
@@ -143,13 +142,7 @@ class Generator(nn.Module):
         # Generate n latent space samples and return their reconstructions.
         # Don't use a loop.
         # ====== YOUR CODE: ======
-        '''
-        torch.autograd.set_grad_enabled(with_grad)
-        z = torch.randn([n, self.z_dim], device=device, requires_grad=with_grad)
-        samples = self.forward(z)
-        torch.autograd.set_grad_enabled(True)
 
-        '''
         with torch.set_grad_enabled(with_grad):
             gauss = torch.distributions.normal.Normal(0,1)
             latent_space_samples = gauss.sample(sample_shape = (n, self.z_dim)).to(device)
