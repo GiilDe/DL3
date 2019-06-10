@@ -122,7 +122,6 @@ statistically independent (by definition :  𝑞(Z|X) = 𝑝(Z)).
 tuned by different nets, which we train separately. So the distributions being I.I.D makes our calculations more stable 
 and precise. 
 
-
 """
 
 # ==============
