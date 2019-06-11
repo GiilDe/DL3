@@ -37,6 +37,7 @@ of the network at the end of the sequence to the next word to generate.  We do n
 connection to the words we already generated. Instead, we want the generated text to complete and add to the given
 sequence. And that is possible due to the hidden states that we pass on. 
 
+
 """
 
 part1_q3 = r"""
